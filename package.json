@@ -1,0 +1,24 @@
+{
+  "name": "devarena-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "config": "^3.3.7",
+    "express": "^4.18.1",
+    "jsonwebtoken": "^8.5.1",
+    "knex": "^2.0.0",
+    "multer": "^1.4.4",
+    "pg": "^8.7.3"
+  },
+  "devDependencies": {
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.16"
+  }
+}
