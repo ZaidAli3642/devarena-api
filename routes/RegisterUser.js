@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const db = require("./database");
 
+// register route
 router.post("/register", (req, res) => {
   const { firstname, lastname, email, category, password } = req.body;
 

@@ -2,6 +2,7 @@ const router = require("express").Router();
 const db = require("./database");
 const path = require("path");
 
+// get all users
 router.get("/users", async (req, res) => {
   let allUsers = [];
 
@@ -38,6 +39,7 @@ router.get("/users", async (req, res) => {
   }
 });
 
+// update user details
 router.patch("/users/:user_id", async (req, res) => {
   const { user_id } = req.params;
   const updatedValue = req.body.updatedValue;
