@@ -8,6 +8,8 @@ const loginUserRoute = require("./routes/LoginUser");
 const profileImageRoute = require("./routes/ProfileImageRoute");
 const emailVerificationRoute = require("./routes/EmailVerificationRoute");
 const postRoute = require("./routes/PostRoute");
+const usersRoute = require("./routes/Users");
+const commentRoute = require("./routes/CommentRoute");
 
 const app = express();
 
@@ -19,6 +21,8 @@ app.use(loginUserRoute);
 app.use(profileImageRoute);
 app.use(emailVerificationRoute);
 app.use(postRoute);
+app.use(usersRoute);
+app.use(commentRoute);
 
 const port = process.env.PORT || config.get("port");
 
