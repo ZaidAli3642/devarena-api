@@ -14,6 +14,7 @@ const imageUpload = multer({
   }),
 });
 
+// upload profile image
 router.post("/image_upload", imageUpload.single("image"), async (req, res) => {
   const { user_id } = req.body;
   const { filename, path: filepath, mimetype, size } = req.file;
@@ -42,6 +43,7 @@ router.post("/image_upload", imageUpload.single("image"), async (req, res) => {
   }
 });
 
+// get specific user profile image
 router.get("/image/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -67,6 +69,7 @@ router.get("/image/:userId", async (req, res) => {
   }
 });
 
+// delete specific user image
 router.delete("/image_delete/:userId", async (req, res) => {
   const { userId } = req.params;
 

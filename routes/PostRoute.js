@@ -16,7 +16,6 @@ const imageUpload = multer({
 });
 
 // post something by logged in user.
-
 router.post("/post", imageUpload.single("image"), async (req, res) => {
   const { description, user_id } = req.body;
 
@@ -48,7 +47,7 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
   }
 });
 
-// get users posts.
+// get specific users posts.
 router.get("/post/:userId", async (req, res) => {
   const { userId } = req.params;
 
@@ -181,6 +180,7 @@ router.post("/dislike", async (req, res) => {
   }
 });
 
+// like for specific post
 router.get("/like/:user_id", async (req, res) => {
   const { user_id } = req.params;
 
@@ -198,6 +198,7 @@ router.get("/like/:user_id", async (req, res) => {
   }
 });
 
+// get dislike for specific post
 router.get("/dislike/:user_id", async (req, res) => {
   const { user_id } = req.params;
 
