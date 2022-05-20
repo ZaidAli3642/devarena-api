@@ -8,40 +8,56 @@ const db = require("./database");
 router.post("/register", (req, res) => {
   const { firstname, lastname, email, category, password } = req.body;
 
-  bcrypt.genSalt(10, (err, salt) => {
-    if (err) return new Error("Error generating salt.");
+  try {
+    bcrypt.genSalt(10, (err, salt) => {
+      if (err) return res.status(400).json("Error generating salt");
 
-    bcrypt.hash(password, salt, (err, hash) => {
-      if (err) return new Error("Error generating hash");
+      bcrypt.hash(password, salt, async (err, hash) => {
+        if (err) return res.status(400).json("Error generating hash");
 
-      db.transaction((trx) => {
-        trx
-          .insert({
-            firstname,
-            lastname,
-            email,
-            category,
-          })
+        const loginDetails = await db
+          .insert({ firstname, lastname, email, category })
           .into("users")
-          .returning("*")
-          .then((loginDetails) => {
-            db.insert({
-              user_id: loginDetails[0].user_id,
-              password_hash: hash,
-            })
-              .into("login")
-              .then(() => {
-                jwt.sign(loginDetails[0], "secret", (err, result) => {
-                  if (err) return new Error(err);
-                  return res.status(200).json(result);
-                });
-              });
+          .returning("*");
+
+        await db
+          .insert({
+            user_id: loginDetails[0].user_id,
+            password_hash: hash,
           })
-          .then(trx.commit)
-          .catch(trx.rollback);
-      }).catch((err) => res.status(400).json(err));
+          .into("login");
+
+        jwt.sign(loginDetails[0], "secret", (err, result) => {
+          if (err) return new Error(err);
+          return res.status(200).json({ token: result });
+        });
+      });
     });
-  });
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 module.exports = router;
+
+// db.transaction((trx) => {
+//   trx
+//     .insert({})
+//     .into("users")
+//     .returning("*")
+//     .then((loginDetails) => {
+//       db.insert({
+//         user_id: loginDetails[0].user_id,
+//         password_hash: hash,
+//       })
+//         .into("login")
+//         .then(() => {
+//           jwt.sign(loginDetails[0], "secret", (err, result) => {
+//             if (err) return new Error(err);
+//             return res.status(200).json({ token: result });
+//           });
+//         });
+//     })
+//     .then(trx.commit)
+//     .catch(trx.rollback);
+// }).catch((err) => res.status(400).json({ message: "Hello", err }));

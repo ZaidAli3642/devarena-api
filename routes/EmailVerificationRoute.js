@@ -1,14 +1,20 @@
 const router = require("express").Router();
 const nodemailer = require("nodemailer");
+const db = require("./database");
 
 const generateRandomNumber = require("../utilities/generateRandomNumber");
 
-router.post("/email_verify", (req, res) => {
+router.post("/email_verify", async (req, res) => {
   const { email } = req.body;
 
   const sixDigitCode = generateRandomNumber();
 
   try {
+    const user = await db.select("*").from("users").where({ email });
+
+    if (user.length)
+      return res.status(200).json({ message: "User already exist." });
+
     const transport = nodemailer.createTransport({
       service: "Gmail",
       port: 587,
