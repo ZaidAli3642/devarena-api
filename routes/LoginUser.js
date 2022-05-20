@@ -11,8 +11,9 @@ router.post("/login", async (req, res) => {
   try {
     const user = await db.select("*").from("users").where("email", "=", email);
 
+    console.log(user);
     if (user.length === 0) {
-      return res.status(400).json({ message: "User is not registered." });
+      return res.status(200).json({ message: "Email is not registered." });
     } else {
       const passwordHash = await db
         .select("password_hash")
@@ -26,10 +27,10 @@ router.post("/login", async (req, res) => {
           jwt.sign(user[0], "secret", (err, token) => {
             if (err) return new Error("Error generating token");
 
-            return res.status(200).json(token);
+            return res.status(200).json({ token });
           });
         } else {
-          return res.status(400).json({ message: "Password not matched." });
+          return res.status(200).json({ message: "Password not matched." });
         }
       });
     }

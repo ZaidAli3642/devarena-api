@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 const db = require("./database");
 
 const imageUpload = multer({
@@ -18,6 +19,8 @@ const imageUpload = multer({
 router.post("/image_upload", imageUpload.single("image"), async (req, res) => {
   const { user_id } = req.body;
   const { filename, path: filepath, mimetype, size } = req.file;
+  console.log(req.file);
+  console.log(user_id);
 
   try {
     await db
@@ -54,12 +57,12 @@ router.get("/image/:userId", async (req, res) => {
       .where({ user_id: userId });
 
     if (profileImage[0]) {
-      const dirname = path.resolve();
-      const fullfilepath = path.join(dirname, profileImage[0].filepath);
+      // const fullfilepath = path.join(__dirname, profileImage[0].filepath);
       return res.status(200).json({
-        imageUri: fullfilepath,
+        imageUri:
+          "http://192.168.42.53:8000/images/" + profileImage[0].filename,
       });
-    } else return res.json(null);
+    }
   } catch (error) {
     res.json({
       success: false,
@@ -69,7 +72,7 @@ router.get("/image/:userId", async (req, res) => {
   }
 });
 
-// delete specific user image
+// delete specific user
 router.delete("/image_delete/:userId", async (req, res) => {
   const { userId } = req.params;
 
