@@ -19,28 +19,46 @@ const imageUpload = multer({
 router.post("/post", imageUpload.single("image"), async (req, res) => {
   const { description, user_id } = req.body;
 
+  const newPost = {};
+
   try {
-    const postId = await db
+    const post = await db
       .insert({ description, created_at: new Date().getTime(), user_id })
       .into("posts")
-      .returning("post_id");
+      .returning("*");
+
+    const user = await db
+      .select(["firstname", "lastname"])
+      .from("users")
+      .where({ user_id });
+
+    console.log(newPost);
+    newPost.post_id = post[0].post_id;
+    newPost.description = post[0].description;
+    newPost.created_at = post[0].created_at;
+    newPost.user_id = post[0].user_id;
+    newPost.firstname = user[0].firstname;
+    newPost.lastname = user[0].lastname;
 
     if (req.file) {
       const { filename, path: filepath, mimetype, size } = req.file;
 
-      await db
+      const image = await db
         .insert({
-          filename,
-          filepath,
-          mimetype,
-          size,
-          post_id: postId[0].post_id,
+          post_filename: filename,
+          post_filepath: filepath,
+          post_mimetype: mimetype,
+          post_size: size,
+          post_id: post[0].post_id,
         })
-        .into("post_image_files");
+        .into("post_image_files")
+        .returning("post_filename");
 
-      return res.status(200).json({ message: "post created with image." });
+      newPost.imageUri = process.env.ASSETS_BASE_URL + image[0].post_filename;
+
+      return res.status(200).send([newPost]);
     } else {
-      return res.status(200).json({ message: "post created without image." });
+      return res.status(200).send([newPost]);
     }
   } catch (error) {
     res.status(400).json({ message: error });
@@ -50,7 +68,6 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
 // get specific users posts.
 router.get("/post/:userId", async (req, res) => {
   const { userId } = req.params;
-
   let userPosts = [];
 
   try {
@@ -65,17 +82,22 @@ router.get("/post/:userId", async (req, res) => {
       )
       .columns(["posts.post_id"]);
 
+    console.log(posts);
     posts.map((singlePost) => {
       const post = {
         post_id: singlePost.post_id,
         description: singlePost.description,
         created_at: singlePost.created_at,
+        firstname: singlePost.firstname,
+        lastname: singlePost.lastname,
         user_id: singlePost.user_id,
       };
       if (singlePost.image_id) {
-        const dirname = path.resolve();
-        const fullfilepath = path.join(dirname, singlePost.filepath);
-        post.fullfilepath = fullfilepath;
+        post.imageUri = process.env.ASSETS_BASE_URL + singlePost.post_filename;
+      }
+      if (singlePost.profile_image_id) {
+        post.profile_imageUri =
+          process.env.ASSETS_BASE_URL + singlePost.profile_filename;
       }
       userPosts = [...userPosts, post];
     });
@@ -103,19 +125,32 @@ router.get("/post", async (req, res) => {
         "post_image_files.post_id",
         "posts.post_id"
       )
+      .leftOuterJoin("users", "users.user_id", "posts.user_id")
+      .leftOuterJoin(
+        "profile_image_files",
+        "profile_image_files.user_id",
+        "posts.user_id"
+      )
       .columns(["posts.post_id"]);
+
+    console.log(allPosts);
 
     allPosts.map((singlePost) => {
       const post = {
         post_id: singlePost.post_id,
         description: singlePost.description,
         created_at: singlePost.created_at,
+        firstname: singlePost.firstname,
+        lastname: singlePost.lastname,
         user_id: singlePost.user_id,
       };
+
       if (singlePost.image_id) {
-        const dirname = path.resolve();
-        const fullfilepath = path.join(dirname, singlePost.filepath);
-        post.fullfilepath = fullfilepath;
+        post.imageUri = process.env.ASSETS_BASE_URL + singlePost.post_filename;
+      }
+      if (singlePost.profile_image_id) {
+        post.profile_imageUri =
+          process.env.ASSETS_BASE_URL + singlePost.profile_filename;
       }
       allUsersPosts = [...allUsersPosts, post];
     });

@@ -25,10 +25,10 @@ router.post("/image_upload", imageUpload.single("image"), async (req, res) => {
   try {
     await db
       .insert({
-        filename,
-        filepath,
-        mimetype,
-        size,
+        profile_filename: filename,
+        profile_filepath: filepath,
+        profile_mimetype: mimetype,
+        profile_size: size,
         user_id,
       })
       .into("profile_image_files");
@@ -60,7 +60,8 @@ router.get("/image/:userId", async (req, res) => {
       // const fullfilepath = path.join(__dirname, profileImage[0].filepath);
       return res.status(200).json({
         imageUri:
-          "http://192.168.42.53:8000/images/" + profileImage[0].filename,
+          "http://192.168.42.53:8000/images/" +
+          profileImage[0].profile_filename,
       });
     }
   } catch (error) {
