@@ -17,6 +17,8 @@ router.get("/users", async (req, res) => {
       )
       .columns(["users.user_id"]);
 
+    console.log(users);
+
     users.map((singleUser) => {
       const user = {
         user_id: singleUser.user_id,
