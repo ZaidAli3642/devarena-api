@@ -74,15 +74,21 @@ router.get("/post/:userId", async (req, res) => {
     const posts = await db
       .select("*")
       .from("posts")
-      .where({ user_id: userId })
       .leftOuterJoin(
         "post_image_files",
         "post_image_files.post_id",
         "posts.post_id"
       )
+      .where({ user_id: userId })
       .columns(["posts.post_id"]);
 
-    console.log(posts);
+    // if (profile_image) {
+    //   post.profile_imageUri =
+    //     process.env.ASSETS_BASE_URL + singlePost.profile_filename;
+    // }
+
+    const allLikes = await db.select("*").from("like_posts");
+    const allDislikes = await db.select("*").from("dislike_posts");
     posts.map((singlePost) => {
       const post = {
         post_id: singlePost.post_id,
@@ -92,13 +98,29 @@ router.get("/post/:userId", async (req, res) => {
         lastname: singlePost.lastname,
         user_id: singlePost.user_id,
       };
+
+      allLikes.forEach((like) => {
+        if (
+          singlePost.post_id === like.post_id &&
+          singlePost.user_id === parseInt(userId)
+        ) {
+          post.like_post = true;
+        }
+      });
+
+      allDislikes.forEach((dislike) => {
+        if (
+          singlePost.post_id === dislike.post_id &&
+          singlePost.user_id === parseInt(userId)
+        ) {
+          post.dislike_post = true;
+        }
+      });
+
       if (singlePost.image_id) {
         post.imageUri = process.env.ASSETS_BASE_URL + singlePost.post_filename;
       }
-      if (singlePost.profile_image_id) {
-        post.profile_imageUri =
-          process.env.ASSETS_BASE_URL + singlePost.profile_filename;
-      }
+
       userPosts = [...userPosts, post];
     });
 
@@ -113,7 +135,9 @@ router.get("/post/:userId", async (req, res) => {
 });
 
 // get all users posts
-router.get("/post", async (req, res) => {
+router.get("/posts/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+
   let allUsersPosts = [];
 
   try {
@@ -133,8 +157,8 @@ router.get("/post", async (req, res) => {
       )
       .columns(["posts.post_id"]);
 
-    console.log(allPosts);
-
+    const allLikes = await db.select("*").from("like_posts");
+    const allDislikes = await db.select("*").from("dislike_posts");
     allPosts.map((singlePost) => {
       const post = {
         post_id: singlePost.post_id,
@@ -144,6 +168,23 @@ router.get("/post", async (req, res) => {
         lastname: singlePost.lastname,
         user_id: singlePost.user_id,
       };
+
+      allLikes.forEach((like) => {
+        if (singlePost.post_id === like.post_id) {
+          if (like.user_id === parseInt(user_id)) {
+            post.like_post = true;
+          }
+        }
+      });
+
+      allDislikes.forEach((dislike) => {
+        if (
+          singlePost.post_id === dislike.post_id &&
+          dislike.user_id === parseInt(user_id)
+        ) {
+          post.dislike_post = true;
+        }
+      });
 
       if (singlePost.image_id) {
         post.imageUri = process.env.ASSETS_BASE_URL + singlePost.post_filename;
@@ -171,6 +212,14 @@ router.post("/like", async (req, res) => {
       .from("like_posts")
       .where({ user_id, post_id });
 
+    const dislikePosts = await db
+      .select("*")
+      .from("dislike_posts")
+      .where({ user_id, post_id });
+
+    if (dislikePosts.length) {
+      await db.del().from("dislike_posts").where({ user_id, post_id });
+    }
     if (likedPosts.length) {
       await db.del().from("like_posts").where({ user_id, post_id });
       return res.status(200).json("unliked");
@@ -198,6 +247,14 @@ router.post("/dislike", async (req, res) => {
       .from("dislike_posts")
       .where({ user_id, post_id });
 
+    const likePosts = await db
+      .select("*")
+      .from("like_posts")
+      .where({ user_id, post_id });
+
+    if (likePosts.length) {
+      await db.del().from("like_posts").where({ user_id, post_id });
+    }
     if (dislikedPost.length) {
       await db.del().from("dislike_posts").where({ user_id, post_id });
       return res.status(200).json("disliked remove.");
@@ -215,39 +272,12 @@ router.post("/dislike", async (req, res) => {
   }
 });
 
-// like for specific post
-router.get("/like/:user_id", async (req, res) => {
-  const { user_id } = req.params;
-
+router.get("/like", async (req, res) => {
   try {
-    const usersLikes = await db
-      .select("*")
-      .from("like_posts")
-      .where({ user_id });
-
-    res
-      .status(200)
-      .json({ message: "All users liked posts.", usersLike: usersLikes });
+    const allPostLikes = await db.select("*").from("like_posts");
+    res.status(200).json(allPostLikes);
   } catch (error) {
-    res.status(400).json({ message: "Error occured", error });
-  }
-});
-
-// get dislike for specific post
-router.get("/dislike/:user_id", async (req, res) => {
-  const { user_id } = req.params;
-
-  try {
-    const userDislikes = await db
-      .select("*")
-      .from("dislike_posts")
-      .where({ user_id });
-
-    res
-      .status(200)
-      .json({ message: "All users disliked posts.", usersLike: userDislikes });
-  } catch (error) {
-    res.status(400).json({ message: "Error occured", error });
+    console.log(error);
   }
 });
 
