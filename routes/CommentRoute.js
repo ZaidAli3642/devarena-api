@@ -6,34 +6,54 @@ router.post("/comment", async (req, res) => {
   const { description, user_id, post_id } = req.body;
 
   try {
-    await db
+    const comment = await db
       .insert({
         description,
         created_at: new Date().getTime(),
         user_id,
         post_id,
       })
-      .into("post_comments");
+      .into("post_comments")
+      .returning("*");
 
-    res.status(200).json({ message: "Comment created." });
+    res.status(200).json({ message: "Comment created.", comment });
   } catch (error) {
     res.status(400).json({ error });
   }
 });
 
 // get single post comments and comments responses
-router.get("/comment", async (req, res) => {
+router.get("/comment/:post_id/:user_id", async (req, res) => {
+  const { post_id, user_id } = req.params;
   let allComments = [];
 
   try {
     const comments = await db
       .select("*")
       .from("post_comments")
-      .leftOuterJoin("users", "users.user_id", "post_comments.user_id");
+      .where({ post_id })
+      .leftOuterJoin("users", "users.user_id", "post_comments.user_id")
+      .leftOuterJoin(
+        "profile_image_files",
+        "profile_image_files.user_id",
+        "post_comments.user_id"
+      );
 
     const commentResponses = await db
       .select("*")
-      .from("post_comments_responses");
+      .from("post_comments_responses")
+      .leftOuterJoin(
+        "users",
+        "users.user_id",
+        "post_comments_responses.user_id"
+      )
+      .leftOuterJoin(
+        "profile_image_files",
+        "profile_image_files.user_id",
+        "post_comments_responses.user_id"
+      );
+
+    const allLikes = await db.select("*").from("like_comments");
 
     const commentsAndResponses = await Promise.all([
       comments,
@@ -43,17 +63,41 @@ router.get("/comment", async (req, res) => {
     commentsAndResponses[0].map((singleComment) => {
       const comment = {
         ...singleComment,
+        profile_image:
+          process.env.ASSETS_BASE_URL + singleComment.profile_filename,
         comment_response: [],
       };
 
+      allLikes.forEach((like) => {
+        if (
+          singleComment.comment_id === like.comment_id &&
+          like.user_id === parseInt(user_id)
+        ) {
+          comment.like_comment = true;
+        }
+      });
+
       commentsAndResponses[1].forEach((singleResponse) => {
+        const commentResponse = {
+          comment_response_id: singleResponse.comment_response_id,
+          firstname: singleResponse.firstname,
+          lastname: singleResponse.lastname,
+          description: singleResponse.description,
+          created_at: singleResponse.created_at,
+          comment_id: singleResponse.comment_id,
+          user_id: singleResponse.user_id,
+        };
+
         if (singleComment.comment_id === singleResponse.comment_id) {
-          comment.comment_response.push(singleResponse);
+          if (singleResponse.profile_image_id) {
+            commentResponse.profile_image =
+              process.env.ASSETS_BASE_URL + singleResponse.profile_filename;
+          }
+          comment.comment_response.push(commentResponse);
         }
       });
       allComments.push(comment);
     });
-
     res.status(200).json({ message: "All Comments", allComments });
   } catch (error) {
     res.status(400).json({ message: "error occured.", error });
@@ -104,21 +148,23 @@ router.get("/like_comments/:user_id", async (req, res) => {
 });
 
 // post comment responses
-
 router.post("/comment_response", async (req, res) => {
   const { description, user_id, comment_id } = req.body;
 
   try {
-    await db
+    const commentResponse = await db
       .insert({
         description,
         created_at: new Date().getTime(),
         user_id,
         comment_id,
       })
-      .into("post_comments_responses");
+      .into("post_comments_responses")
+      .returning("*");
 
-    res.status(200).json({ message: "Comment response created." });
+    res
+      .status(200)
+      .json({ message: "Comment response created.", commentResponse });
   } catch (error) {
     res.status(400).json({ message: "Error occured.", error });
   }
