@@ -32,7 +32,6 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
       .from("users")
       .where({ user_id });
 
-    console.log(newPost);
     newPost.post_id = post[0].post_id;
     newPost.description = post[0].description;
     newPost.created_at = post[0].created_at;
@@ -157,8 +156,19 @@ router.get("/posts/:user_id", async (req, res) => {
       )
       .columns(["posts.post_id"]);
 
+    const allComments = await db
+      .select("*")
+      .from("post_comments")
+      .leftOuterJoin("users", "users.user_id", "post_comments.user_id")
+      .leftOuterJoin(
+        "profile_image_files",
+        "profile_image_files.user_id",
+        "users.user_id"
+      );
+
     const allLikes = await db.select("*").from("like_posts");
     const allDislikes = await db.select("*").from("dislike_posts");
+
     allPosts.map((singlePost) => {
       const post = {
         post_id: singlePost.post_id,
@@ -167,7 +177,26 @@ router.get("/posts/:user_id", async (req, res) => {
         firstname: singlePost.firstname,
         lastname: singlePost.lastname,
         user_id: singlePost.user_id,
+        comments: [],
       };
+
+      allComments.forEach((comments) => {
+        const comment = {
+          comment_id: comments.comment_id,
+          description: comments.description,
+          user_id: comments.user_id,
+          post_id: comments.post_id,
+          firstname: comments.firstname,
+          lastname: comments.lastname,
+        };
+        if (singlePost.post_id === comments.post_id) {
+          if (comments.profile_image_id) {
+            comment.profile_image =
+              process.env.ASSETS_BASE_URL + comments.profile_filename;
+          }
+          post.comments.push(comment);
+        }
+      });
 
       allLikes.forEach((like) => {
         if (singlePost.post_id === like.post_id) {

@@ -22,16 +22,13 @@ router.post("/comment", async (req, res) => {
 });
 
 // get single post comments and comments responses
-router.get("/comment/:post_id", async (req, res) => {
-  const { post_id } = req.params;
-
+router.get("/comment", async (req, res) => {
   let allComments = [];
 
   try {
     const comments = await db
       .select("*")
       .from("post_comments")
-      .where({ post_id })
       .leftOuterJoin("users", "users.user_id", "post_comments.user_id");
 
     const commentResponses = await db
