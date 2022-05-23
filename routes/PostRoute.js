@@ -17,19 +17,29 @@ const imageUpload = multer({
 
 // post something by logged in user.
 router.post("/post", imageUpload.single("image"), async (req, res) => {
-  const { description, user_id } = req.body;
+  const { description, user_id, post_type } = req.body;
 
   const newPost = {};
 
   try {
     const post = await db
-      .insert({ description, created_at: new Date().getTime(), user_id })
+      .insert({
+        description,
+        created_at: new Date().getTime(),
+        user_id,
+        post_type,
+      })
       .into("posts")
       .returning("*");
 
     const user = await db
       .select(["firstname", "lastname"])
       .from("users")
+      .where({ user_id });
+
+    const profile_image = await db
+      .select("profile_filename")
+      .from("profile_image_files")
       .where({ user_id });
 
     newPost.post_id = post[0].post_id;
@@ -41,6 +51,8 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
 
     if (req.file) {
       const { filename, path: filepath, mimetype, size } = req.file;
+
+      console.log(filename, "\n", filepath);
 
       const image = await db
         .insert({
@@ -54,7 +66,8 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
         .returning("post_filename");
 
       newPost.imageUri = process.env.ASSETS_BASE_URL + image[0].post_filename;
-
+      newPost.profile_imageUri =
+        process.env.ASSETS_BASE_URL + profile_image[0].profile_filename;
       return res.status(200).send([newPost]);
     } else {
       return res.status(200).send([newPost]);
@@ -139,8 +152,8 @@ router.get("/post/:user_id", async (req, res) => {
 });
 
 // get all users posts
-router.get("/posts/:user_id", async (req, res) => {
-  const { user_id } = req.params;
+router.get("/posts/:user_id/:post_type", async (req, res) => {
+  const { user_id, post_type } = req.params;
 
   try {
     const allPosts = await db
@@ -157,6 +170,7 @@ router.get("/posts/:user_id", async (req, res) => {
         "profile_image_files.user_id",
         "posts.user_id"
       )
+      .where({ post_type })
       .columns(["posts.post_id"]);
 
     const allLikes = await db.select("*").from("like_posts");
@@ -242,6 +256,64 @@ router.post("/dislike", async (req, res) => {
     res.status(200).json("Disliked.");
   } catch (error) {
     res.status(400).json(error);
+  }
+});
+
+router.post("/share_post", async (req, res) => {
+  const { description, user_id, post_type, shared_user_id, shared_post_id } =
+    req.body;
+
+  const newPost = {};
+
+  try {
+    const post = await db
+      .insert({
+        description,
+        created_at: new Date().getTime(),
+        user_id,
+        post_type,
+        shared_user_id,
+        shared_post_id,
+      })
+      .into("posts")
+      .returning("*");
+
+    const user = await db
+      .select(["firstname", "lastname"])
+      .from("users")
+      .where({ user_id });
+
+    newPost.post_id = post[0].post_id;
+    newPost.description = post[0].description;
+    newPost.created_at = post[0].created_at;
+    newPost.user_id = post[0].user_id;
+    newPost.shared_user_id = post[0].shared_user_id;
+    newPost.shared_post_id = post[0].shared_post_id;
+    newPost.firstname = user[0].firstname;
+    newPost.lastname = user[0].lastname;
+
+    if (req.body.filename) {
+      const { filename, filepath, mimetype, size } = req.body;
+
+      const image = await db
+        .insert({
+          post_filename: filename,
+          post_filepath: filepath,
+          post_mimetype: mimetype,
+          post_size: size,
+          post_id: post[0].post_id,
+        })
+        .into("post_image_files")
+        .returning("post_filename");
+
+      newPost.imageUri = process.env.ASSETS_BASE_URL + image[0].post_filename;
+
+      return res.status(200).send([newPost]);
+    } else {
+      return res.status(200).send([newPost]);
+    }
+  } catch (error) {
+    res.status(400).json({ message: error });
   }
 });
 

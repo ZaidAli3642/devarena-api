@@ -17,8 +17,6 @@ router.get("/users", async (req, res) => {
       )
       .columns(["users.user_id"]);
 
-    console.log(users);
-
     users.map((singleUser) => {
       const user = {
         user_id: singleUser.user_id,
@@ -38,6 +36,17 @@ router.get("/users", async (req, res) => {
     res.status(200).json({ message: "All users", allUsers });
   } catch (error) {
     res.status(400).json({ message: "error occured.", error });
+  }
+});
+
+router.get("/user/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    const user = await db.select("*").from("users").where({ user_id });
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(400).json({ message: "error occured", error });
   }
 });
 
