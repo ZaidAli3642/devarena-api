@@ -112,6 +112,12 @@ router.get("/post/:user_id", async (req, res) => {
         user_id: singlePost.user_id,
         firstname: user[0].firstname,
         lastname: user[0].lastname,
+        post_filename: singlePost.post_filename,
+        post_filepath: singlePost.post_filepath,
+        post_mimetype: singlePost.post_mimetype,
+        post_size: singlePost.post_size,
+        post_type: singlePost.post_type,
+        shared_user_id: singlePost.shared_user_id,
       };
 
       allLikes.forEach((like) => {
