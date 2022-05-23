@@ -9,6 +9,12 @@ const getPostDetails = (data, likeData, dislikeData, user_id) => {
       firstname: data.firstname,
       lastname: data.lastname,
       user_id: data.user_id,
+      post_filename: data.post_filename,
+      post_filepath: data.post_filepath,
+      post_mimetype: data.post_mimetype,
+      post_size: data.post_size,
+      post_type: data.post_type,
+      shared_user_id: data.shared_user_id,
       comments: [],
     };
 

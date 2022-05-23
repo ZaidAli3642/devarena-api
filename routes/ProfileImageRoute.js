@@ -60,8 +60,7 @@ router.get("/image/:userId", async (req, res) => {
       // const fullfilepath = path.join(__dirname, profileImage[0].filepath);
       return res.status(200).json({
         imageUri:
-          "http://192.168.42.53:8000/images/" +
-          profileImage[0].profile_filename,
+          process.env.ASSETS_BASE_URL + profileImage[0].profile_filename,
       });
     }
   } catch (error) {
