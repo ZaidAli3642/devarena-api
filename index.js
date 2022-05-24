@@ -2,9 +2,7 @@ const config = require("config");
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
-const expressfileupload = require("express-fileupload");
 require("dotenv").config();
-const path = require("path");
 
 const registerUserRoute = require("./routes/RegisterUser");
 const loginUserRoute = require("./routes/LoginUser");
@@ -13,6 +11,7 @@ const emailVerificationRoute = require("./routes/EmailVerificationRoute");
 const postRoute = require("./routes/PostRoute");
 const usersRoute = require("./routes/Users");
 const commentRoute = require("./routes/CommentRoute");
+const groupRoute = require("./routes/GroupRoute");
 
 const app = express();
 
@@ -30,6 +29,7 @@ app.use("/api", emailVerificationRoute);
 app.use("/api", postRoute);
 app.use("/api", usersRoute);
 app.use("/api", commentRoute);
+app.use("/api", groupRoute);
 
 const port = process.env.PORT || config.get("port");
 
