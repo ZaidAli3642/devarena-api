@@ -136,7 +136,6 @@ router.get("/user_group/:user_id", async (req, res) => {
       .column(["group_.group_id"]);
 
     groups.forEach((singleGroup) => {
-      console.log(singleGroup);
       const group = {
         group_id: singleGroup.group_id,
         group_name: singleGroup.group_name,
@@ -169,6 +168,99 @@ router.post("/group_post", async (req, res) => {
       .returning("*");
 
     res.status(200).json({ message: "Post Created", groupPost });
+  } catch (error) {
+    res.status(400).json({ message: "Error creating post.", error });
+  }
+});
+
+router.get("/single_group_post/:user_id/:group_id", async (req, res) => {
+  const { group_id, user_id } = req.params;
+
+  let allGroupPosts = [];
+
+  try {
+    const groupPosts = await db
+      .select("*")
+      .from("group_post")
+      .leftOuterJoin("posts", "posts.post_id", "group_post.post_id")
+      .leftOuterJoin(
+        "post_image_files",
+        "post_image_files.post_id",
+        "posts.post_id"
+      )
+      .leftOuterJoin("users", "users.user_id", "posts.user_id")
+      .leftOuterJoin(
+        "profile_image_files",
+        "profile_image_files.user_id",
+        "posts.user_id"
+      )
+      .where("group_post.group_id", "=", group_id)
+      .column(["posts.shared_post_id"]);
+
+    const allLikes = await db.select("*").from("like_posts");
+    const allDislikes = await db.select("*").from("dislike_posts");
+
+    groupPosts.map((singleGroupPost) => {
+      const groupPost = {
+        post_id: singleGroupPost.post_id,
+        description: singleGroupPost.description,
+        created_at: singleGroupPost.created_at,
+        firstname: singleGroupPost.firstname,
+        lastname: singleGroupPost.lastname,
+        user_id: singleGroupPost.user_id,
+        post_filename: singleGroupPost.post_filename,
+        post_filepath: singleGroupPost.post_filepath,
+        post_mimetype: singleGroupPost.post_mimetype,
+        post_size: singleGroupPost.post_size,
+        post_type: singleGroupPost.post_type,
+        shared_user_id: singleGroupPost.shared_user_id,
+      };
+
+      allLikes.forEach((like) => {
+        if (singleGroupPost.post_id === like.post_id) {
+          if (like.user_id === parseInt(user_id)) {
+            groupPost.like_post = true;
+          }
+        }
+      });
+
+      allDislikes.forEach((dislike) => {
+        if (
+          singleGroupPost.post_id === dislike.post_id &&
+          dislike.user_id === parseInt(user_id)
+        ) {
+          groupPost.dislike_post = true;
+        }
+      });
+
+      if (singleGroupPost.image_id) {
+        groupPost.imageUri =
+          process.env.ASSETS_BASE_URL + singleGroupPost.post_filename;
+      }
+      if (singleGroupPost.profile_image_id) {
+        groupPost.profile_imageUri =
+          process.env.ASSETS_BASE_URL + singleGroupPost.profile_filename;
+      }
+
+      allGroupPosts.push(groupPost);
+    });
+
+    res.status(200).json({ message: "Group Posts", allGroupPosts });
+  } catch (error) {
+    res.status(400).json({ message: "Error occured.", error });
+  }
+});
+
+// route for getting to group post for displaying group name with post
+router.get("/group_post/:post_id", async (req, res) => {
+  const { post_id } = req.params;
+
+  try {
+    const group_post = await db
+      .select("*")
+      .from("group_post")
+      .where({ post_id });
+    res.status(200).json({ message: "All Groups posts", group_post });
   } catch (error) {
     console.log(error);
   }
