@@ -230,6 +230,38 @@ router.post("/like", async (req, res) => {
   }
 });
 
+router.get("/like/:post_id", async (req, res) => {
+  const { post_id } = req.params;
+
+  try {
+    const postLikes = await db
+      .select("*")
+      .from("like_posts")
+      .where({ post_id });
+
+    res.status(200).json({ message: "All Likes", postLikes: postLikes.length });
+  } catch (error) {
+    res.status(400).json({ message: "Error occured", error });
+  }
+});
+
+router.get("/dislike/:post_id", async (req, res) => {
+  const { post_id } = req.params;
+
+  try {
+    const postDislikes = await db
+      .select("*")
+      .from("dislike_posts")
+      .where({ post_id });
+
+    res
+      .status(200)
+      .json({ message: "All Likes", postDislikes: postDislikes.length });
+  } catch (error) {
+    res.status(400).json({ message: "Error occured", error });
+  }
+});
+
 // disliked or un-disliked post.
 router.post("/dislike", async (req, res) => {
   const { user_id, post_id } = req.body;

@@ -22,6 +22,22 @@ router.post("/comment", async (req, res) => {
   }
 });
 
+router.get("/comment/:post_id", async (req, res) => {
+  const { post_id } = req.params;
+
+  try {
+    const postComments = await db
+      .select("*")
+      .from("post_comments")
+      .where({ post_id });
+    res
+      .status(200)
+      .json({ message: "Posts comments", postComments: postComments.length });
+  } catch (error) {
+    res.status(400).json({ message: "Error occured", error });
+  }
+});
+
 // get single post comments and comments responses
 router.get("/comment/:post_id/:user_id", async (req, res) => {
   const { post_id, user_id } = req.params;
