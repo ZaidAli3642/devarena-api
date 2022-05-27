@@ -12,6 +12,7 @@ const postRoute = require("./routes/PostRoute");
 const usersRoute = require("./routes/Users");
 const commentRoute = require("./routes/CommentRoute");
 const groupRoute = require("./routes/GroupRoute");
+const requestRoute = require("./routes/RequestsRoute");
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/api", postRoute);
 app.use("/api", usersRoute);
 app.use("/api", commentRoute);
 app.use("/api", groupRoute);
+app.use("/api", requestRoute);
 
 const port = process.env.PORT || config.get("port");
 

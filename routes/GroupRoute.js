@@ -64,7 +64,8 @@ router.get("/all_group/:user_id", async (req, res) => {
         "joined_group.joined_group_id",
         "group_.group_id"
       )
-      .whereNot({ user_id });
+      .where("group_.user_id", "!=", user_id)
+      .column(["group_.user_id", "group_.group_id"]);
 
     groups.forEach((singleGroup) => {
       if (!singleGroup.join_id) {
@@ -304,8 +305,16 @@ router.get("/joined_group/:user_id", async (req, res) => {
         "joined_group.joined_group_id",
         "group_.group_id"
       )
-      .whereNot({ user_id });
+      .where(function () {
+        this.where("group_.user_id", "!=", user_id).andWhere(
+          "joined_group.approve_request",
+          "=",
+          true
+        );
+      })
+      .column(["group_.group_id"]);
 
+    console.log(groups);
     groups.forEach((singleGroup) => {
       if (singleGroup.join_id) {
         const group = {
@@ -313,6 +322,9 @@ router.get("/joined_group/:user_id", async (req, res) => {
           group_name: singleGroup.group_name,
           group_description: singleGroup.group_description,
           user_id: singleGroup.user_id,
+          approve_request: singleGroup.approve_request,
+          joined_group_id: singleGroup.joined_group_id,
+          joined_user_id: singleGroup.joined_user_id,
         };
 
         if (singleGroup.group_image_id) {
