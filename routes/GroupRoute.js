@@ -67,8 +67,37 @@ router.get("/all_group/:user_id", async (req, res) => {
       .where("group_.user_id", "!=", user_id)
       .column(["group_.user_id", "group_.group_id"]);
 
+    const user = await db
+      .select("*")
+      .from("users")
+      .leftOuterJoin(
+        "joined_group",
+        "joined_group.joined_user_id",
+        "users.user_id"
+      )
+      .where(function () {
+        this.where("users.user_id", "=", user_id).orWhere(
+          "joined_group.joined_user_id",
+          "=",
+          user_id
+        );
+      })
+      .column(["users.user_id", "joined_group.joined_user_id"]);
+
+    const uniqueArray = groups.reduce((finalArray, current) => {
+      let obj = finalArray.find((item) => item.group_id === current.group_id);
+
+      if (obj) {
+        return finalArray;
+      }
+      return finalArray.concat([current]);
+    }, []);
+
     groups.forEach((singleGroup) => {
-      if (!singleGroup.join_id) {
+      if (
+        singleGroup.joined_user_id !== user[0].user_id &&
+        singleGroup.joined_group_id !== user[0].joined_group_id
+      ) {
         const group = {
           group_id: singleGroup.group_id,
           group_name: singleGroup.group_name,
@@ -80,6 +109,7 @@ router.get("/all_group/:user_id", async (req, res) => {
           group.group_image =
             process.env.ASSETS_BASE_URL + singleGroup.group_filename;
         }
+
         allGroups.push(group);
       }
     });
@@ -314,9 +344,10 @@ router.get("/joined_group/:user_id", async (req, res) => {
       })
       .column(["group_.group_id"]);
 
-    console.log(groups);
+    const user = await db.select("*").from("users").where({ user_id });
+
     groups.forEach((singleGroup) => {
-      if (singleGroup.join_id) {
+      if (singleGroup.joined_user_id === user[0].user_id) {
         const group = {
           group_id: singleGroup.group_id,
           group_name: singleGroup.group_name,
@@ -336,6 +367,60 @@ router.get("/joined_group/:user_id", async (req, res) => {
     });
 
     res.status(200).json({ message: "All groups", joinedGroups });
+  } catch (error) {
+    res.status(400).json({ message: "error occured.", error });
+  }
+});
+
+router.get("/group_members/:group_id", async (req, res) => {
+  const { group_id } = req.params;
+
+  const allMembers = [];
+  try {
+    const members = await db
+      .select("*")
+      .from("joined_group")
+      .leftOuterJoin("users", "users.user_id", "joined_group.joined_user_id")
+      .leftOuterJoin(
+        "profile_image_files",
+        "profile_image_files.user_id",
+        "joined_group.joined_user_id"
+      )
+      .where({ joined_group_id: group_id });
+
+    members.forEach((singleMember) => {
+      const member = {
+        join_id: singleMember.join_id,
+        firstname: singleMember.firstname,
+        lastname: singleMember.lastname,
+      };
+      if (singleMember.profile_image_id)
+        member.profile_imageUri =
+          process.env.ASSETS_BASE_URL + singleMember.profile_filename;
+
+      allMembers.push(member);
+    });
+
+    res.status(200).json({ message: "All group memebers", allMembers });
+  } catch (error) {
+    res.status(400).json({ message: "Error occured.", error });
+  }
+});
+
+router.patch("/group_update/:group_id", async (req, res) => {
+  const { group_id } = req.params;
+  const updatedValue = req.body.updatedValue;
+  const { name, value } = updatedValue;
+
+  try {
+    await db
+      .update({
+        [name]: value,
+      })
+      .from("group_")
+      .where({ group_id });
+
+    res.status(200).json({ message: "field updated." });
   } catch (error) {
     res.status(400).json({ message: "error occured.", error });
   }

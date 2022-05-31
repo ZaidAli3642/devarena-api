@@ -8,6 +8,7 @@ router.post("/request", async (req, res) => {
     joined_firstname,
     joined_group_name,
     user_id,
+    approve_request = false,
   } = req.body;
 
   try {
@@ -15,7 +16,7 @@ router.post("/request", async (req, res) => {
       .insert({
         joined_group_id,
         joined_user_id,
-        approve_request: false,
+        approve_request,
         joined_firstname,
         joined_group_name,
         message: "wants to join",
@@ -44,6 +45,7 @@ router.get("/request/:user_id", async (req, res) => {
           false
         );
       });
+    console.log(allRequests);
     res.status(200).json({ message: "All Requests", allRequests });
   } catch (error) {
     res.status(400).json({ message: "Error occured.", error });
@@ -65,6 +67,16 @@ router.patch("/approve/:join_id", async (req, res) => {
     res.status(200).json({ message: "Approved Request.", approvedRequest });
   } catch (error) {
     res.status(400).json({ message: "Error occured.", error });
+  }
+});
+
+router.delete("/remove_members/:join_id", async (req, res) => {
+  const { join_id } = req.params;
+  try {
+    const removed = await db.del().from("joined_group").where({ join_id });
+    res.status(200).json({ message: "Removed User from group", removed });
+  } catch (error) {
+    console.log(error);
   }
 });
 
@@ -162,7 +174,8 @@ router.get("/followers/:user_id", async (req, res) => {
           "=",
           true
         );
-      });
+      })
+      .column(["users.user_id"]);
 
     followers.forEach((singleFollower) => {
       const follower = {
@@ -208,7 +221,8 @@ router.get("/following/:user_id", async (req, res) => {
           "=",
           true
         );
-      });
+      })
+      .column(["users.user_id"]);
 
     followings.forEach((singleFollowing) => {
       const following = {
@@ -227,6 +241,82 @@ router.get("/following/:user_id", async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: "Error occured.", error });
   }
+});
+
+router.get("/check_request", async (req, res) => {
+  const follow_user_id = req.query.follow_user_id;
+  const user_id = req.query.user_id;
+
+  const followRequestUser = await db
+    .select("*")
+    .from("follow_request")
+    .where(function () {
+      this.where("follow_request.follow_user_id", "=", follow_user_id).andWhere(
+        "follow_request.user_id",
+        "=",
+        user_id
+      );
+    });
+
+  res.status(200).json({ message: "Follow Request User.", followRequestUser });
+});
+
+router.get("/allFollowersFollowing/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+
+  const allFollowUsers = [];
+
+  const followersAndFollowings = await db
+    .select("*")
+    .from("follow_request")
+    .leftOuterJoin("users", "users.user_id", "follow_request.follow_user_id")
+    .leftOuterJoin(
+      "profile_image_files",
+      "profile_image_files.user_id",
+      "follow_request.follow_user_id"
+    )
+    .leftOuterJoin(
+      "joined_group",
+      "joined_group.joined_user_id",
+      "follow_request.follow_user_id"
+    )
+    .where(function () {
+      this.where("follow_request.follow_user_id", "=", user_id).orWhere(
+        "follow_request.user_id",
+        "=",
+        user_id
+      );
+    })
+    .andWhere("follow_request.approve_request", "=", true)
+    .column(["users.user_id"]);
+
+  const result = followersAndFollowings.reduce((finalArray, current) => {
+    let obj = finalArray.find((item) => item.user_id === current.user_id);
+
+    if (obj) {
+      return finalArray;
+    }
+    return finalArray.concat([current]);
+  }, []);
+
+  result.forEach((singleUser) => {
+    const user = {
+      user_id: singleUser.user_id,
+      firstname: singleUser.firstname,
+      lastname: singleUser.lastname,
+      joined_group_id: singleUser.joined_group_id,
+      approve_request: singleUser.approve_request,
+    };
+    if (singleUser.profile_image_id)
+      user.profile_imageUri =
+        process.env.ASSETS_BASE_URL + singleUser.profile_filename;
+
+    allFollowUsers.push(user);
+  });
+
+  res
+    .status(200)
+    .json({ message: "All Followed and Following users.", allFollowUsers });
 });
 
 module.exports = router;
