@@ -76,6 +76,8 @@ router.patch("/users/:user_id", async (req, res) => {
   const updatedValue = req.body.updatedValue;
   const { name, value } = updatedValue;
 
+  console.log(updatedValue);
+
   try {
     await db
       .update({
