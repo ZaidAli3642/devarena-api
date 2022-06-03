@@ -11,4 +11,6 @@ const db = knex({
   },
 });
 
+console.log("Hello");
+
 module.exports = db;
