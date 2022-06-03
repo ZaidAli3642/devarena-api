@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: false }));
 // app.use(expressfileupload());
 // app.use(morgan("dev"));
 
-app.use("/", (req, res) => res.send("Its working!"));
+app.get("/", (req, res) => res.send("Its working!"));
 
 app.use("/api", registerUserRoute);
 app.use("/api", loginUserRoute);
