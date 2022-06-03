@@ -90,10 +90,12 @@ router.post("/follow_request", async (req, res) => {
         follow_firstname,
         approve_request: false,
         user_id,
+        message: "want to follow you",
       })
       .into("follow_request")
       .returning("*");
 
+    console.log(request);
     res.status(200).json({ message: "Request", request });
   } catch (error) {
     res.status(400).json({ message: "Error occured.", error });

@@ -84,20 +84,8 @@ router.get("/all_group/:user_id", async (req, res) => {
       })
       .column(["users.user_id", "joined_group.joined_user_id"]);
 
-    const uniqueArray = groups.reduce((finalArray, current) => {
-      let obj = finalArray.find((item) => item.group_id === current.group_id);
-
-      if (obj) {
-        return finalArray;
-      }
-      return finalArray.concat([current]);
-    }, []);
-
     groups.forEach((singleGroup) => {
-      if (
-        singleGroup.joined_user_id !== user[0].user_id &&
-        singleGroup.joined_group_id !== user[0].joined_group_id
-      ) {
+      if (singleGroup.joined_user_id !== user[0].user_id) {
         const group = {
           group_id: singleGroup.group_id,
           group_name: singleGroup.group_name,
@@ -113,6 +101,7 @@ router.get("/all_group/:user_id", async (req, res) => {
         allGroups.push(group);
       }
     });
+    console.log(allGroups);
 
     res.status(200).json({ message: "All groups", allGroups });
   } catch (error) {
