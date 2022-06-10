@@ -1,24 +1,11 @@
 const router = require("express").Router();
-const multer = require("multer");
 const db = require("./database");
 
-const imageUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, "images/");
-    },
-    filename: (req, file, cb) => {
-      cb(null, new Date().valueOf() + "_" + file.originalname);
-    },
-  }),
-});
-
 // upload profile image
-router.post("/image_upload", imageUpload.single("image"), async (req, res) => {
-  const { user_id } = req.body;
-  const { filename, path: filepath, mimetype, size } = req.file;
-  console.log(req.file);
-  console.log(user_id);
+router.post("/image_upload", async (req, res) => {
+  const { user_id, filename, filepath, mimetype, size, profile_imageurl } =
+    req.body;
+  console.log(req.body);
 
   try {
     await db
@@ -27,13 +14,14 @@ router.post("/image_upload", imageUpload.single("image"), async (req, res) => {
         profile_filepath: filepath,
         profile_mimetype: mimetype,
         profile_size: size,
+        profile_imageurl,
         user_id,
       })
       .into("profile_image_files");
 
     res.status(200).json({
       success: true,
-      filename,
+      profile_imageurl,
     });
   } catch (error) {
     res.status(400).json({
@@ -57,8 +45,7 @@ router.get("/image/:userId", async (req, res) => {
     if (profileImage[0]) {
       // const fullfilepath = path.join(__dirname, profileImage[0].filepath);
       return res.status(200).json({
-        imageUri:
-          process.env.ASSETS_BASE_URL + profileImage[0].profile_filename,
+        imageUri: profileImage[0].profile_imageurl,
       });
     }
   } catch (error) {
@@ -75,9 +62,13 @@ router.delete("/image_delete/:userId", async (req, res) => {
   const { userId } = req.params;
 
   try {
-    await db.del().from("profile_image_files").where({ user_id: userId });
+    const user_image = await db
+      .del()
+      .from("profile_image_files")
+      .where({ user_id: userId })
+      .returning("*");
 
-    res.status(200).json({ message: "profile image deleted." });
+    res.status(200).json({ message: "profile image deleted.", user_image });
   } catch (error) {
     res.status(400).json(error);
   }

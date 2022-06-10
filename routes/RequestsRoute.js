@@ -186,8 +186,7 @@ router.get("/followers/:user_id", async (req, res) => {
         lastname: singleFollower.lastname,
       };
       if (singleFollower.profile_image_id)
-        follower.profile_imageUri =
-          process.env.ASSETS_BASE_URL + singleFollower.profile_filename;
+        follower.profile_imageUri = singleFollower.profile_imageurl;
 
       allFollowers.push(follower);
     });
@@ -233,8 +232,7 @@ router.get("/following/:user_id", async (req, res) => {
         lastname: singleFollowing.lastname,
       };
       if (singleFollowing.profile_image_id)
-        following.profile_imageUri =
-          process.env.ASSETS_BASE_URL + singleFollowing.profile_filename;
+        following.profile_imageUri = singleFollowing.profile_imageurl;
 
       allFollowings.push(following);
     });
@@ -263,8 +261,8 @@ router.get("/check_request", async (req, res) => {
   res.status(200).json({ message: "Follow Request User.", followRequestUser });
 });
 
-router.get("/allFollowersFollowing/:user_id", async (req, res) => {
-  const { user_id } = req.params;
+router.get("/allFollowersFollowing/:user_id/:group_id", async (req, res) => {
+  const { user_id, group_id } = req.params;
 
   const allFollowUsers = [];
 
@@ -282,6 +280,7 @@ router.get("/allFollowersFollowing/:user_id", async (req, res) => {
       "joined_group.joined_user_id",
       "follow_request.follow_user_id"
     )
+    .where("joined_group.joined_group_id", "!=", group_id)
     .where(function () {
       this.where("follow_request.follow_user_id", "=", user_id).orWhere(
         "follow_request.user_id",
@@ -290,7 +289,7 @@ router.get("/allFollowersFollowing/:user_id", async (req, res) => {
       );
     })
     .andWhere("follow_request.approve_request", "=", true)
-    .column(["users.user_id"]);
+    .column(["users.user_id", "joined_group.approve_request"]);
 
   const result = followersAndFollowings.reduce((finalArray, current) => {
     let obj = finalArray.find((item) => item.user_id === current.user_id);
@@ -308,10 +307,10 @@ router.get("/allFollowersFollowing/:user_id", async (req, res) => {
       lastname: singleUser.lastname,
       joined_group_id: singleUser.joined_group_id,
       approve_request: singleUser.approve_request,
+      joined_user_id: singleUser.joined_user_id,
     };
     if (singleUser.profile_image_id)
-      user.profile_imageUri =
-        process.env.ASSETS_BASE_URL + singleUser.profile_filename;
+      user.profile_imageUri = singleUser.profile_imageurl;
 
     allFollowUsers.push(user);
   });

@@ -1,23 +1,20 @@
 const router = require("express").Router();
-const multer = require("multer");
 
 const getPostDetails = require("../utilities/getPostsDetails");
 const db = require("./database");
 
-const imageUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, "images/");
-    },
-    filename: (req, file, cb) => {
-      cb(null, new Date().valueOf() + "_" + file.originalname);
-    },
-  }),
-});
-
 // post something by logged in user.
-router.post("/post", imageUpload.single("image"), async (req, res) => {
-  const { description, user_id, post_type } = req.body;
+router.post("/post", async (req, res) => {
+  const {
+    description,
+    user_id,
+    post_type,
+    filename,
+    path: filepath,
+    mimetype,
+    size,
+    post_imageurl,
+  } = req.body;
 
   const newPost = {};
 
@@ -38,7 +35,7 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
       .where({ user_id });
 
     const profile_image = await db
-      .select("profile_filename")
+      .select("profile_imageurl")
       .from("profile_image_files")
       .where({ user_id });
 
@@ -49,11 +46,9 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
     newPost.firstname = user[0].firstname;
     newPost.lastname = user[0].lastname;
 
-    if (req.file) {
-      const { filename, path: filepath, mimetype, size } = req.file;
-
-      console.log(filename, "\n", filepath);
-
+    if (profile_image[0])
+      newPost.profile_imageUri = profile_image[0].profile_imageurl;
+    if (filename) {
       const image = await db
         .insert({
           post_filename: filename,
@@ -61,13 +56,15 @@ router.post("/post", imageUpload.single("image"), async (req, res) => {
           post_mimetype: mimetype,
           post_size: size,
           post_id: post[0].post_id,
+          post_imageurl,
         })
         .into("post_image_files")
-        .returning("post_filename");
+        .returning("post_imageurl");
 
-      newPost.imageUri = process.env.ASSETS_BASE_URL + image[0].post_filename;
-      newPost.profile_imageUri =
-        process.env.ASSETS_BASE_URL + profile_image[0].profile_filename;
+      console.log(profile_image);
+
+      newPost.imageUri = image[0].post_imageurl;
+
       return res.status(200).send([newPost]);
     } else {
       return res.status(200).send([newPost]);
@@ -97,7 +94,7 @@ router.get("/post/:user_id", async (req, res) => {
     const user = await db.select("*").from("users").where({ user_id });
 
     const profile_image = await db
-      .select("profile_filename")
+      .select("*")
       .from("profile_image_files")
       .where({ user_id });
 
@@ -137,14 +134,13 @@ router.get("/post/:user_id", async (req, res) => {
         }
       });
 
-      if (profile_image[0].profile_filename) {
-        post.profile_imageUri =
-          process.env.ASSETS_BASE_URL + profile_image[0].profile_filename;
+      if (profile_image[0]) {
+        post.profile_imageUri = profile_image[0].profile_imageurl;
       }
       if (singlePost.image_id) {
-        post.imageUri = process.env.ASSETS_BASE_URL + singlePost.post_filename;
+        post.imageUri = singlePost.post_imageurl;
       }
-      userPosts = [...userPosts, post];
+      userPosts.push(post);
     });
 
     res.status(200).json({ message: "Users posts", userPosts });
@@ -331,7 +327,7 @@ router.post("/share_post", async (req, res) => {
     newPost.lastname = user[0].lastname;
 
     if (req.body.filename) {
-      const { filename, filepath, mimetype, size } = req.body;
+      const { filename, filepath, mimetype, size, post_imageurl } = req.body;
 
       const image = await db
         .insert({
@@ -339,12 +335,13 @@ router.post("/share_post", async (req, res) => {
           post_filepath: filepath,
           post_mimetype: mimetype,
           post_size: size,
+          post_imageurl,
           post_id: post[0].post_id,
         })
         .into("post_image_files")
         .returning("post_filename");
 
-      newPost.imageUri = process.env.ASSETS_BASE_URL + image[0].post_filename;
+      newPost.imageUri = image[0].post_imageurl;
 
       return res.status(200).send([newPost]);
     } else {

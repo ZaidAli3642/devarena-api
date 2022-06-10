@@ -36,11 +36,10 @@ const getPostDetails = (data, likeData, dislikeData, user_id) => {
     });
 
     if (data.image_id) {
-      post.imageUri = process.env.ASSETS_BASE_URL + data.post_filename;
+      post.imageUri = data.post_imageurl;
     }
     if (data.profile_image_id) {
-      post.profile_imageUri =
-        process.env.ASSETS_BASE_URL + data.profile_filename;
+      post.profile_imageUri = data.profile_imageurl;
     }
     allUsersPosts = [...allUsersPosts, post];
   });
