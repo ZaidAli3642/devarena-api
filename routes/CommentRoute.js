@@ -79,8 +79,7 @@ router.get("/comment/:post_id/:user_id", async (req, res) => {
     commentsAndResponses[0].map((singleComment) => {
       const comment = {
         ...singleComment,
-        profile_image:
-          process.env.ASSETS_BASE_URL + singleComment.profile_filename,
+        profile_image: singleComment.profile_imageurl,
         comment_response: [],
       };
 
@@ -106,8 +105,7 @@ router.get("/comment/:post_id/:user_id", async (req, res) => {
 
         if (singleComment.comment_id === singleResponse.comment_id) {
           if (singleResponse.profile_image_id) {
-            commentResponse.profile_image =
-              process.env.ASSETS_BASE_URL + singleResponse.profile_filename;
+            commentResponse.profile_image = singleResponse.profile_imageurl;
           }
           comment.comment_response.push(commentResponse);
         }

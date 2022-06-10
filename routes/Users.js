@@ -61,8 +61,7 @@ router.get("/user/:user_id", async (req, res) => {
     userDetails.category = user[0].category;
 
     if (user[0].profile_image_id)
-      userDetails.profile_imageUri =
-        process.env.ASSETS_BASE_URL + user[0].profile_filename;
+      userDetails.profile_imageUri = user[0].profile_imageurl;
 
     res.status(200).json(userDetails);
   } catch (error) {

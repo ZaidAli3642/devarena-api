@@ -1,19 +1,7 @@
 const router = require("express").Router();
 const db = require("./database");
-const multer = require("multer");
 
-const uploadImage = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, "images/");
-    },
-    filename: (req, file, cb) => {
-      cb(null, new Date().valueOf() + "_" + file.originalname);
-    },
-  }),
-});
-
-router.post("/group", uploadImage.single("image"), async (req, res) => {
+router.post("/group", async (req, res) => {
   const { group_name, group_description, user_id } = req.body;
 
   try {
@@ -26,14 +14,22 @@ router.post("/group", uploadImage.single("image"), async (req, res) => {
       .into("group_")
       .returning("*");
 
-    if (req.file) {
-      const { filename, path: filepath, mimetype, size } = req.file;
+    if (req.body.filename) {
+      const {
+        filename,
+        path: filepath,
+        mimetype,
+        size,
+        group_imageurl,
+      } = req.body;
+
       await db
         .insert({
           group_filename: filename,
           group_filepath: filepath,
           group_mimetype: mimetype,
           group_size: size,
+          group_imageurl,
           group_id: group[0].group_id,
         })
         .into("group_image_files");
@@ -94,8 +90,7 @@ router.get("/all_group/:user_id", async (req, res) => {
         };
 
         if (singleGroup.group_image_id) {
-          group.group_image =
-            process.env.ASSETS_BASE_URL + singleGroup.group_filename;
+          group.group_image = singleGroup.group_imageurl;
         }
 
         allGroups.push(group);
@@ -129,8 +124,7 @@ router.get("/group/:group_id", async (req, res) => {
     singleGroup.group_name = group[0].group_name;
     singleGroup.group_description = group[0].group_description;
     singleGroup.user_id = group[0].user_id;
-    singleGroup.group_image =
-      process.env.ASSETS_BASE_URL + group[0].group_filename;
+    singleGroup.group_image = group[0].group_imageurl;
 
     res.status(200).json({ message: "Single Group", singleGroup });
   } catch (error) {
@@ -163,8 +157,7 @@ router.get("/user_group/:user_id", async (req, res) => {
         user_id: singleGroup.user_id,
       };
       if (singleGroup.group_image_id) {
-        group.group_image =
-          process.env.ASSETS_BASE_URL + singleGroup.group_filename;
+        group.group_image = singleGroup.group_imageurl;
       }
       allUserGroups.push(group);
     });
@@ -232,6 +225,7 @@ router.get("/single_group_post/:user_id/:group_id", async (req, res) => {
         post_filepath: singleGroupPost.post_filepath,
         post_mimetype: singleGroupPost.post_mimetype,
         post_size: singleGroupPost.post_size,
+        post_imageurl: singleGroupPost.post_imageurl,
         post_type: singleGroupPost.post_type,
         shared_user_id: singleGroupPost.shared_user_id,
       };
@@ -254,12 +248,10 @@ router.get("/single_group_post/:user_id/:group_id", async (req, res) => {
       });
 
       if (singleGroupPost.image_id) {
-        groupPost.imageUri =
-          process.env.ASSETS_BASE_URL + singleGroupPost.post_filename;
+        groupPost.imageUri = singleGroupPost.post_imageurl;
       }
       if (singleGroupPost.profile_image_id) {
-        groupPost.profile_imageUri =
-          process.env.ASSETS_BASE_URL + singleGroupPost.profile_filename;
+        groupPost.profile_imageUri = singleGroupPost.profile_imageurl;
       }
 
       allGroupPosts.push(groupPost);
@@ -348,8 +340,7 @@ router.get("/joined_group/:user_id", async (req, res) => {
         };
 
         if (singleGroup.group_image_id) {
-          group.group_image =
-            process.env.ASSETS_BASE_URL + singleGroup.group_filename;
+          group.group_image = singleGroup.group_imageurl;
         }
         joinedGroups.push(group);
       }
@@ -377,15 +368,17 @@ router.get("/group_members/:group_id", async (req, res) => {
       )
       .where({ joined_group_id: group_id });
 
+    console.log(members);
+
     members.forEach((singleMember) => {
       const member = {
         join_id: singleMember.join_id,
         firstname: singleMember.firstname,
         lastname: singleMember.lastname,
+        joined_user_id: singleMember.joined_user_id,
       };
       if (singleMember.profile_image_id)
-        member.profile_imageUri =
-          process.env.ASSETS_BASE_URL + singleMember.profile_filename;
+        member.profile_imageUri = singleMember.profile_imageurl;
 
       allMembers.push(member);
     });
